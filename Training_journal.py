@@ -111,6 +111,17 @@ class TrainingLogApp:
                                         command=self.view_filtered_records)  # Создание кнопки для применения фильтра
         self.filter_button.grid(column=0, row=7, columnspan=2, pady=10)  # Размещение кнопки в сетке
 
+        # Виджеты для фильтрации по упражнению
+        self.exercise_filter_label = ttk.Label(self.root, text="Фильтр по упражнению:")
+        self.exercise_filter_label.grid(column=0, row=8, sticky=tk.W, padx=5, pady=5)
+
+        self.exercise_filter_entry = ttk.Entry(self.root)  # Создание поля ввода для фильтра по упражнению
+        self.exercise_filter_entry.grid(column=1, row=8, sticky=tk.EW, padx=5, pady=5)  # Размещение поля ввода в сетке
+
+        self.filter_exercise_button = ttk.Button(self.root, text="Фильтр по упражнению",
+                                                 command=self.view_filtered_by_exercise)  # Создание кнопки для фильтрации по упражнению
+        self.filter_exercise_button.grid(column=0, row=9, columnspan=2, pady=10)  # Размещение кнопки в сетке
+
     def add_entry(self):
         """
         Добавление новой записи о тренировке.
@@ -210,6 +221,44 @@ class TrainingLogApp:
         # Создание нового окна для отображения отфильтрованных записей
         records_window = Toplevel(self.root)
         records_window.title("Отфильтрованные записи тренировок")
+
+        # Создание таблицы для отображения данных
+        tree = ttk.Treeview(records_window, columns=("Дата", "Упражнение", "Вес", "Повторения"), show="headings")
+
+        # Установка заголовков столбцов
+        tree.heading('Дата', text="Дата")
+        tree.heading('Упражнение', text="Упражнение")
+        tree.heading('Вес', text="Вес")
+        tree.heading('Повторения', text="Повторения")
+
+        # Заполнение таблицы данными из отфильтрованных записей
+        for entry in filtered_data:
+            tree.insert('', tk.END, values=(entry['date'], entry['exercise'], entry['weight'], entry['repetitions']))
+
+        # Размещение таблицы в окне с растягиванием на всю доступную область
+        tree.pack(expand=True, fill=tk.BOTH)
+
+    def view_filtered_by_exercise(self):
+        """
+        Просмотр записей о тренировках с применением фильтра по упражнению.
+        """
+        # Получение значения из поля ввода фильтра по упражнению
+        exercise_filter = self.exercise_filter_entry.get()
+
+        # Проверка, что поле фильтра по упражнению заполнено
+        if not exercise_filter:
+            messagebox.showerror("Ошибка", "Введите название упражнения для фильтрации!")
+            return
+
+        # Загрузка данных о тренировках
+        data = load_data()
+
+        # Фильтрация записей по упражнению
+        filtered_data = [entry for entry in data if entry['exercise'] == exercise_filter]
+
+        # Создание нового окна для отображения отфильтрованных записей
+        records_window = Toplevel(self.root)
+        records_window.title(f"Записи тренировок по упражнению '{exercise_filter}'")
 
         # Создание таблицы для отображения данных
         tree = ttk.Treeview(records_window, columns=("Дата", "Упражнение", "Вес", "Повторения"), show="headings")
