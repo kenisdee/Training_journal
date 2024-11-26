@@ -127,7 +127,7 @@ class TrainingLogApp:
         Добавление новой записи о тренировке.
         """
         # Получение текущей даты и времени в формате строки
-        date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        date = datetime.now().strftime('%d.%m.%Y %H:%M:%S')
 
         # Получение значения из поля ввода упражнения
         exercise = self.exercise_entry.get()
@@ -201,8 +201,8 @@ class TrainingLogApp:
         Применение фильтров по дате и упражнению.
         """
         # Получение значений из полей ввода дат
-        start_date_str = self.start_date_entry.get_date().strftime('%Y-%m-%d')
-        end_date_str = self.end_date_entry.get_date().strftime('%Y-%m-%d')
+        start_date_str = self.start_date_entry.get_date().strftime('%d.%m.%Y')
+        end_date_str = self.end_date_entry.get_date().strftime('%d.%m.%Y')
 
         # Получение значения из поля ввода фильтра по упражнению
         exercise_filter = self.exercise_filter_entry.get()
@@ -214,10 +214,15 @@ class TrainingLogApp:
 
         try:
             # Преобразование строк дат в объекты datetime
-            start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
-            end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+            start_date = datetime.strptime(start_date_str, '%d.%m.%Y')
+            end_date = datetime.strptime(end_date_str, '%d.%m.%Y')
         except ValueError:
-            messagebox.showerror("Ошибка", "Неверный формат даты! Используйте формат гггг-мм-дд.")
+            messagebox.showerror("Ошибка", "Неверный формат даты! Используйте формат дд.мм.гггг.")
+            return
+
+        # Проверка, что начальная дата не позже конечной даты
+        if start_date > end_date:
+            messagebox.showerror("Ошибка", "Начальная дата не может быть позже конечной даты!")
             return
 
         # Загрузка данных о тренировках
@@ -226,7 +231,7 @@ class TrainingLogApp:
         # Фильтрация записей по дате и упражнению
         filtered_data = [entry for entry in data if
                          start_date.date() <= datetime.strptime(entry['date'],
-                                                                '%Y-%m-%d %H:%M:%S').date() <= end_date.date() and
+                                                                '%d.%m.%Y %H:%M:%S').date() <= end_date.date() and
                          (not exercise_filter or entry['exercise'].lower() == exercise_filter.lower())]
 
         # Создание нового окна для отображения отфильтрованных записей
