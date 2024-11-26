@@ -133,19 +133,19 @@ class TrainingLogApp:
         self.exercise_filter_entry = ttk.Entry(self.root)  # Создание поля ввода для фильтра по упражнению
         self.exercise_filter_entry.grid(column=1, row=7, sticky=tk.EW, padx=5, pady=5)  # Размещение поля ввода в сетке
 
-        self.filter_button = ttk.Button(self.root, text="Применить фильтр",
+        self.filter_button = ttk.Button(self.root, text="Отфильтровать и посмотреть записи",
                                         command=self.apply_filters)  # Создание кнопки для применения фильтра
         self.filter_button.grid(column=0, row=8, columnspan=2, pady=10)  # Размещение кнопки в сетке
 
         # Кнопка для просмотра статистики
         self.stats_button = ttk.Button(self.root, text="Статистика по упражнениям",
                                        command=self.view_exercise_stats)  # Создание кнопки для просмотра статистики
-        self.stats_button.grid(column=0, row=9, columnspan=2, pady=10)  # Размещение кнопки в сетке
+        self.stats_button.grid(column=0, row=9)  # Размещение кнопки в сетке
 
         # Кнопка для просмотра прогресса
         self.progress_button = ttk.Button(self.root, text="Прогресс по упражнениям",
                                           command=self.view_progress)  # Создание кнопки для просмотра прогресса
-        self.progress_button.grid(column=0, row=10, columnspan=2, pady=10)  # Размещение кнопки в сетке
+        self.progress_button.grid(column=1, row=9)  # Размещение кнопки в сетке
 
     def add_entry(self):
         """
@@ -560,14 +560,14 @@ class TrainingLogApp:
 
         for entry in filtered_data:
             exercise = entry['exercise']
-            date = datetime.strptime(entry['date'], '%d.%m.%Y %H:%M:%S').date()
+            date_time = datetime.strptime(entry['date'], '%d.%m.%Y %H:%M:%S')
             weight = float(entry['weight'])
             repetitions = int(entry['repetitions'])
 
             if exercise not in progress_data:
                 progress_data[exercise] = {'dates': [], 'weights': [], 'repetitions': []}
 
-            progress_data[exercise]['dates'].append(date)
+            progress_data[exercise]['dates'].append(date_time)
             progress_data[exercise]['weights'].append(weight)
             progress_data[exercise]['repetitions'].append(repetitions)
 
@@ -588,7 +588,7 @@ class TrainingLogApp:
                                      name=f"{exercise} - Повторения"), row=2, col=1)
 
         # Настройка графика
-        fig.update_layout(title='Прогресс по упражнениям', xaxis_title='Дата', yaxis_title='Значение',
+        fig.update_layout(title='Прогресс по упражнениям', xaxis_title='Дата и время', yaxis_title='Значение',
                           legend_title='Упражнения', template='plotly_white')
 
         # Размещение графика в окне
