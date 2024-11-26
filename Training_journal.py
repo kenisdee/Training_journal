@@ -8,9 +8,12 @@ import tkinter as tk
 from datetime import datetime
 from tkinter import ttk, Toplevel, messagebox, filedialog
 
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from tkcalendar import DateEntry  # Импорт виджета календаря
+# Импорт библиотеки Plotly для создания интерактивных графиков
+import plotly.graph_objs as go
+import plotly.io as pio
+import plotly.subplots as sp
+# Импорт виджета календаря
+from tkcalendar import DateEntry
 
 # Файл для сохранения данных о тренировках
 data_file = 'training_log.json'
@@ -137,12 +140,12 @@ class TrainingLogApp:
         # Кнопка для просмотра статистики
         self.stats_button = ttk.Button(self.root, text="Статистика по упражнениям",
                                        command=self.view_exercise_stats)  # Создание кнопки для просмотра статистики
-        self.stats_button.grid(column=0, row=9)  # Размещение кнопки в сетке
+        self.stats_button.grid(column=0, row=9, columnspan=2, pady=10)  # Размещение кнопки в сетке
 
         # Кнопка для просмотра прогресса
         self.progress_button = ttk.Button(self.root, text="Прогресс по упражнениям",
                                           command=self.view_progress)  # Создание кнопки для просмотра прогресса
-        self.progress_button.grid(column=1, row=9)  # Размещение кнопки в сетке
+        self.progress_button.grid(column=0, row=10, columnspan=2, pady=10)  # Размещение кнопки в сетке
 
     def add_entry(self):
         """
@@ -224,10 +227,6 @@ class TrainingLogApp:
 
         delete_button = ttk.Button(records_window, text="Удалить", command=lambda: self.delete_entry(tree))
         delete_button.pack(side=tk.LEFT, padx=5, pady=5)
-
-        # Добавление кнопки "Сохранить"
-        # save_button = ttk.Button(records_window, text="Сохранить", command=lambda: self.save_table_data(tree))
-        # save_button.pack(side=tk.LEFT, padx=5, pady=5)
 
     def save_table_data(self, tree):
         """
@@ -577,24 +576,23 @@ class TrainingLogApp:
         progress_window.title("Прогресс по упражнениям")
 
         # Создание фигуры для графика
-        fig, ax = plt.subplots(figsize=(10, 6))
+        fig = sp.make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.1,
+                               subplot_titles=('Вес', 'Повторения'))
 
         # Отображение графика для каждого упражнения
         for exercise, data in progress_data.items():
-            ax.plot(data['dates'], data['weights'], label=f"{exercise} - Вес")
-            ax.plot(data['dates'], data['repetitions'], label=f"{exercise} - Повторения")
+            fig.add_trace(
+                go.Scatter(x=data['dates'], y=data['weights'], mode='lines+markers', name=f"{exercise} - Вес"),
+                row=1, col=1)
+            fig.add_trace(go.Scatter(x=data['dates'], y=data['repetitions'], mode='lines+markers',
+                                     name=f"{exercise} - Повторения"), row=2, col=1)
 
         # Настройка графика
-        ax.set_xlabel('Дата')
-        ax.set_ylabel('Значение')
-        ax.set_title('Прогресс по упражнениям')
-        ax.legend()
-        ax.grid(True)
+        fig.update_layout(title='Прогресс по упражнениям', xaxis_title='Дата', yaxis_title='Значение',
+                          legend_title='Упражнения', template='plotly_white')
 
         # Размещение графика в окне
-        canvas = FigureCanvasTkAgg(fig, master=progress_window)
-        canvas.draw()
-        canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+        pio.show(fig, filename='progress_plot.html', auto_open=True)
 
 
 def main():
