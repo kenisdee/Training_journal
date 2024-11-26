@@ -130,8 +130,10 @@ class TrainingLogApp:
         self.exercise_filter_label = ttk.Label(self.root, text="Фильтр по упражнению:")
         self.exercise_filter_label.grid(column=0, row=7, sticky=tk.W, padx=5, pady=5)
 
-        self.exercise_filter_entry = ttk.Entry(self.root)  # Создание поля ввода для фильтра по упражнению
-        self.exercise_filter_entry.grid(column=1, row=7, sticky=tk.EW, padx=5, pady=5)  # Размещение поля ввода в сетке
+        # Загрузка уникальных названий упражнений для выпадающего списка
+        self.exercise_filter_combobox = ttk.Combobox(self.root, state="readonly")
+        self.exercise_filter_combobox.grid(column=1, row=7, sticky=tk.EW, padx=5, pady=5)
+        self.update_exercise_filter_combobox()
 
         self.filter_button = ttk.Button(self.root, text="Отфильтровать и посмотреть записи",
                                         command=self.apply_filters)  # Создание кнопки для применения фильтра
@@ -146,6 +148,14 @@ class TrainingLogApp:
         self.progress_button = ttk.Button(self.root, text="Прогресс по упражнениям",
                                           command=self.view_progress)  # Создание кнопки для просмотра прогресса
         self.progress_button.grid(column=1, row=9)  # Размещение кнопки в сетке
+
+    def update_exercise_filter_combobox(self):
+        """
+        Обновление выпадающего списка упражнений на основе данных из файла.
+        """
+        data = load_data()
+        exercises = sorted(set(entry['exercise'] for entry in data))
+        self.exercise_filter_combobox['values'] = exercises
 
     def add_entry(self):
         """
@@ -190,6 +200,9 @@ class TrainingLogApp:
         self.exercise_entry.delete(0, tk.END)
         self.weight_entry.delete(0, tk.END)
         self.repetitions_entry.delete(0, tk.END)
+
+        # Обновление выпадающего списка упражнений
+        self.update_exercise_filter_combobox()
 
         # Вывод сообщения об успешном добавлении записи
         messagebox.showinfo("Успешно", "Запись успешно добавлена!")
@@ -254,7 +267,7 @@ class TrainingLogApp:
         end_date_str = self.end_date_entry.get_date().strftime('%d.%m.%Y')
 
         # Получение значения из поля ввода фильтра по упражнению
-        exercise_filter = self.exercise_filter_entry.get()
+        exercise_filter = self.exercise_filter_combobox.get()
 
         # Проверка, что оба поля даты заполнены
         if not (start_date_str and end_date_str):
@@ -371,6 +384,9 @@ class TrainingLogApp:
 
         # Сохранение импортированных данных
         save_data(data)
+
+        # Обновление выпадающего списка упражнений
+        self.update_exercise_filter_combobox()
 
         messagebox.showinfo("Успешно", "Данные успешно импортированы из CSV файла.")
 
@@ -524,7 +540,7 @@ class TrainingLogApp:
         end_date_str = self.end_date_entry.get_date().strftime('%d.%m.%Y')
 
         # Получение значения из поля ввода фильтра по упражнению
-        exercise_filter = self.exercise_filter_entry.get()
+        exercise_filter = self.exercise_filter_combobox.get()
 
         # Проверка, что оба поля даты заполнены
         if not (start_date_str and end_date_str):
