@@ -213,6 +213,27 @@ class TrainingLogApp:
         delete_button = ttk.Button(records_window, text="Удалить", command=lambda: self.delete_entry(tree))
         delete_button.pack(side=tk.LEFT, padx=5, pady=5)
 
+        # Добавление кнопки "Сохранить"
+        # save_button = ttk.Button(records_window, text="Сохранить", command=lambda: self.save_table_data(tree))
+        # save_button.pack(side=tk.LEFT, padx=5, pady=5)
+
+    def save_table_data(self, tree):
+        """
+        Сохранение данных из таблицы в файл training_log.json.
+        """
+        data = []
+        for item in tree.get_children():
+            values = tree.item(item)['values']
+            data.append({
+                'date': values[0],
+                'exercise': values[1],
+                'weight': values[2],
+                'repetitions': values[3]
+            })
+
+        save_data(data)
+        messagebox.showinfo("Успешно", "Данные успешно сохранены!")
+
     def apply_filters(self):
         """
         Применение фильтров по дате и упражнению.
@@ -323,6 +344,13 @@ class TrainingLogApp:
             data = []
             for row in reader:
                 date, exercise, weight, repetitions = row
+                try:
+                    # Попытка преобразовать дату в формат %d.%m.%Y %H:%M:%S
+                    datetime.strptime(date, '%d.%m.%Y %H:%M:%S')
+                except ValueError:
+                    # Если формат даты отличается, приводим его к %d.%m.%Y %H:%M:%S
+                    date = datetime.strptime(date, '%Y-%m-%d %H:%M:%S').strftime('%d.%m.%Y %H:%M:%S')
+
                 data.append({
                     'date': date,
                     'exercise': exercise,
@@ -334,6 +362,28 @@ class TrainingLogApp:
         save_data(data)
 
         messagebox.showinfo("Успешно", "Данные успешно импортированы из CSV файла.")
+
+    def save_changes(self, tree, edit_window, selected_item, exercise_entry, weight_entry, repetitions_entry):
+        """
+        Сохранение изменений в выбранной записи.
+        """
+        new_exercise = exercise_entry.get()
+        new_weight = weight_entry.get()
+        new_repetitions = repetitions_entry.get()
+
+        if not (new_exercise and new_weight and new_repetitions):
+            messagebox.showerror("Ошибка", "Все поля должны быть заполнены!")
+            return
+
+        # Обновление данных в таблице
+        tree.item(selected_item,
+                  values=(tree.item(selected_item)['values'][0], new_exercise, new_weight, new_repetitions))
+
+        # Сохранение изменений в файл
+        self.save_table_data(tree)
+
+        edit_window.destroy()
+        messagebox.showinfo("Успешно", "Запись успешно отредактирована!")
 
     def edit_entry(self, tree):
         """
@@ -370,32 +420,10 @@ class TrainingLogApp:
         repetitions_entry.grid(row=2, column=1, padx=5, pady=5)
 
         # Кнопка для сохранения изменений
-        def save_changes():
-            new_exercise = exercise_entry.get()
-            new_weight = weight_entry.get()
-            new_repetitions = repetitions_entry.get()
-
-            if not (new_exercise and new_weight and new_repetitions):
-                messagebox.showerror("Ошибка", "Все поля должны быть заполнены!")
-                return
-
-            # Обновление данных в таблице
-            tree.item(selected_item, values=(date, new_exercise, new_weight, new_repetitions))
-
-            # Обновление данных в файле
-            data = load_data()
-            for entry in data:
-                if entry['date'] == date and entry['exercise'] == exercise and entry['weight'] == weight and entry['repetitions'] == repetitions:
-                    entry['exercise'] = new_exercise
-                    entry['weight'] = new_weight
-                    entry['repetitions'] = new_repetitions
-                    break
-            save_data(data)
-
-            edit_window.destroy()
-            messagebox.showinfo("Успешно", "Запись успешно отредактирована!")
-
-        ttk.Button(edit_window, text="Сохранить", command=save_changes).grid(row=3, columnspan=2, pady=10)
+        save_button = ttk.Button(edit_window, text="Сохранить",
+                                 command=lambda: self.save_changes(tree, edit_window, selected_item, exercise_entry,
+                                                                   weight_entry, repetitions_entry))
+        save_button.grid(row=3, columnspan=2, pady=10)
 
     def delete_entry(self, tree):
         """
@@ -407,17 +435,11 @@ class TrainingLogApp:
             messagebox.showerror("Ошибка", "Выберите запись для удаления!")
             return
 
-        # Получение данных выбранной записи
-        values = tree.item(selected_item)['values']
-        date, exercise, weight, repetitions = values
-
         # Удаление записи из таблицы
         tree.delete(selected_item)
 
-        # Удаление записи из файла
-        data = load_data()
-        data = [entry for entry in data if not (entry['date'] == date and entry['exercise'] == exercise and entry['weight'] == weight and entry['repetitions'] == repetitions)]
-        save_data(data)
+        # Сохранение изменений в файл
+        self.save_table_data(tree)
 
         messagebox.showinfo("Успешно", "Запись успешно удалена!")
 
