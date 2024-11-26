@@ -7,7 +7,7 @@ import tkinter as tk
 from datetime import datetime
 from tkinter import ttk, Toplevel, messagebox
 
-from tkcalendar import DateEntry  # Импорт виджета календаря
+from tkcalendar import DateEntry
 
 # Файл для сохранения данных о тренировках
 data_file = 'training_log.json'
@@ -94,8 +94,8 @@ class TrainingLogApp:
         self.view_button.grid(column=0, row=4, columnspan=2, pady=10)  # Размещение кнопки в сетке
 
         # Виджеты для фильтрации по дате с использованием календаря
-        self.start_date_label = ttk.Label(self.root, text="Начальная дата:")
-        self.start_date_label.grid(column=0, row=5, sticky=tk.W, padx=5, pady=5)
+        self.start_date_label = ttk.Label(self.root, text="Начальная дата:")  # Создание метки для поля "Начальная дата"
+        self.start_date_label.grid(column=0, row=5, sticky=tk.W, padx=5, pady=5)  # Размещение метки в сетке
 
         self.start_date_entry = DateEntry(self.root, width=12, background='darkblue',
                                           foreground='white',
@@ -103,8 +103,8 @@ class TrainingLogApp:
         self.start_date_entry.grid(column=1, row=5, sticky=tk.EW, padx=5,
                                    pady=5)  # Размещение виджета календаря в сетке
 
-        self.end_date_label = ttk.Label(self.root, text="Конечная дата:")
-        self.end_date_label.grid(column=0, row=6, sticky=tk.W, padx=5, pady=5)
+        self.end_date_label = ttk.Label(self.root, text="Конечная дата:")  # Создание метки для поля "Конечная дата"
+        self.end_date_label.grid(column=0, row=6, sticky=tk.W, padx=5, pady=5)  # Размещение метки в сетке
 
         self.end_date_entry = DateEntry(self.root, width=12, background='darkblue',
                                         foreground='white',
@@ -112,8 +112,9 @@ class TrainingLogApp:
         self.end_date_entry.grid(column=1, row=6, sticky=tk.EW, padx=5, pady=5)  # Размещение виджета календаря в сетке
 
         # Виджеты для фильтрации по упражнению
-        self.exercise_filter_label = ttk.Label(self.root, text="Фильтр по упражнению:")
-        self.exercise_filter_label.grid(column=0, row=7, sticky=tk.W, padx=5, pady=5)
+        self.exercise_filter_label = ttk.Label(self.root,
+                                               text="Фильтр по упражнению:")  # Создание метки для поля "Фильтр по упражнению"
+        self.exercise_filter_label.grid(column=0, row=7, sticky=tk.W, padx=5, pady=5)  # Размещение метки в сетке
 
         self.exercise_filter_entry = ttk.Entry(self.root)  # Создание поля ввода для фильтра по упражнению
         self.exercise_filter_entry.grid(column=1, row=7, sticky=tk.EW, padx=5, pady=5)  # Размещение поля ввода в сетке
@@ -121,7 +122,6 @@ class TrainingLogApp:
         self.filter_button = ttk.Button(self.root, text="Применить фильтр",
                                         command=self.apply_filters)  # Создание кнопки для применения фильтра
         self.filter_button.grid(column=0, row=8, columnspan=2, pady=10)  # Размещение кнопки в сетке
-
     def add_entry(self):
         """
         Добавление новой записи о тренировке.
@@ -233,6 +233,11 @@ class TrainingLogApp:
                          start_date.date() <= datetime.strptime(entry['date'],
                                                                 '%d.%m.%Y %H:%M:%S').date() <= end_date.date() and
                          (not exercise_filter or entry['exercise'].lower() == exercise_filter.lower())]
+
+        # Проверка на существование записей, соответствующих фильтру
+        if not filtered_data:
+            messagebox.showinfo("Информация", "В заданный период упражнения не найдены.")
+            return
 
         # Создание нового окна для отображения отфильтрованных записей
         records_window = Toplevel(self.root)
