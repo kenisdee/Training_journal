@@ -132,6 +132,11 @@ class TrainingLogApp:
                                         command=self.apply_filters)  # Создание кнопки для применения фильтра
         self.filter_button.grid(column=0, row=8, columnspan=2, pady=10)  # Размещение кнопки в сетке
 
+        # Кнопка для просмотра статистики
+        self.stats_button = ttk.Button(self.root, text="Статистика по упражнениям",
+                                       command=self.view_exercise_stats)  # Создание кнопки для просмотра статистики
+        self.stats_button.grid(column=0, row=9, columnspan=2, pady=10)  # Размещение кнопки в сетке
+
     def add_entry(self):
         """
         Добавление новой записи о тренировке.
@@ -442,6 +447,64 @@ class TrainingLogApp:
         self.save_table_data(tree)
 
         messagebox.showinfo("Успешно", "Запись успешно удалена!")
+
+    def view_exercise_stats(self):
+        """
+        Просмотр статистики по выполненным упражнениям.
+        """
+        # Загрузка данных о тренировках
+        data = load_data()
+
+        # Словарь для хранения статистики по упражнениям
+        stats = {}
+
+        for entry in data:
+            exercise = entry['exercise']
+            weight = float(entry['weight'])
+            repetitions = int(entry['repetitions'])
+
+            if exercise not in stats:
+                stats[exercise] = {
+                    'total_weight': 0,
+                    'total_repetitions': 0,
+                    'total_sets': 0,
+                    'max_weight': 0,
+                    'max_repetitions': 0
+                }
+
+            stats[exercise]['total_weight'] += weight * repetitions
+            stats[exercise]['total_repetitions'] += repetitions
+            stats[exercise]['total_sets'] += 1
+
+            if weight > stats[exercise]['max_weight']:
+                stats[exercise]['max_weight'] = weight
+
+            if repetitions > stats[exercise]['max_repetitions']:
+                stats[exercise]['max_repetitions'] = repetitions
+
+        # Создание нового окна для отображения статистики
+        stats_window = Toplevel(self.root)
+        stats_window.title("Статистика по упражнениям")
+
+        # Создание таблицы для отображения данных
+        tree = ttk.Treeview(stats_window, columns=("Упражнение", "Всего вес", "Всего повторений", "Всего подходов",
+                                                   "Макс. вес", "Макс. повторений"), show="headings")
+
+        # Установка заголовков столбцов
+        tree.heading('Упражнение', text="Упражнение")
+        tree.heading('Всего вес', text="Всего вес")
+        tree.heading('Всего повторений', text="Всего повторений")
+        tree.heading('Всего подходов', text="Всего подходов")
+        tree.heading('Макс. вес', text="Макс. вес")
+        tree.heading('Макс. повторений', text="Макс. повторений")
+
+        # Заполнение таблицы данными из статистики
+        for exercise, stat in stats.items():
+            tree.insert('', tk.END, values=(exercise, stat['total_weight'], stat['total_repetitions'],
+                                            stat['total_sets'], stat['max_weight'], stat['max_repetitions']))
+
+        # Размещение таблицы в окне с растягиванием на всю доступную область
+        tree.pack(expand=True, fill=tk.BOTH)
 
 
 def main():
