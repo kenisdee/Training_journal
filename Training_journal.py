@@ -8,6 +8,8 @@ import tkinter as tk
 from datetime import datetime
 from tkinter import ttk, Toplevel, messagebox, filedialog
 
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from tkcalendar import DateEntry  # Импорт виджета календаря
 
 # Файл для сохранения данных о тренировках
@@ -135,7 +137,12 @@ class TrainingLogApp:
         # Кнопка для просмотра статистики
         self.stats_button = ttk.Button(self.root, text="Статистика по упражнениям",
                                        command=self.view_exercise_stats)  # Создание кнопки для просмотра статистики
-        self.stats_button.grid(column=0, row=9, columnspan=2, pady=10)  # Размещение кнопки в сетке
+        self.stats_button.grid(column=0, row=9)  # Размещение кнопки в сетке
+
+        # Кнопка для просмотра прогресса
+        self.progress_button = ttk.Button(self.root, text="Прогресс по упражнениям",
+                                          command=self.view_progress)  # Создание кнопки для просмотра прогресса
+        self.progress_button.grid(column=1, row=9)  # Размещение кнопки в сетке
 
     def add_entry(self):
         """
@@ -505,6 +512,89 @@ class TrainingLogApp:
 
         # Размещение таблицы в окне с растягиванием на всю доступную область
         tree.pack(expand=True, fill=tk.BOTH)
+
+    def view_progress(self):
+        """
+        Просмотр прогресса по выполненным упражнениям.
+        """
+        # Загрузка данных о тренировках
+        data = load_data()
+
+        # Получение значений из полей ввода дат
+        start_date_str = self.start_date_entry.get_date().strftime('%d.%m.%Y')
+        end_date_str = self.end_date_entry.get_date().strftime('%d.%m.%Y')
+
+        # Получение значения из поля ввода фильтра по упражнению
+        exercise_filter = self.exercise_filter_entry.get()
+
+        # Проверка, что оба поля даты заполнены
+        if not (start_date_str and end_date_str):
+            messagebox.showerror("Ошибка", "Введите начальную и конечную дату!")
+            return
+
+        try:
+            # Преобразование строк дат в объекты datetime
+            start_date = datetime.strptime(start_date_str, '%d.%m.%Y')
+            end_date = datetime.strptime(end_date_str, '%d.%m.%Y')
+        except ValueError:
+            messagebox.showerror("Ошибка", "Неверный формат даты! Используйте формат дд.мм.гггг.")
+            return
+
+        # Проверка, что начальная дата не позже конечной даты
+        if start_date > end_date:
+            messagebox.showerror("Ошибка", "Начальная дата не может быть позже конечной даты!")
+            return
+
+        # Фильтрация записей по дате и упражнению
+        filtered_data = [entry for entry in data if
+                         start_date.date() <= datetime.strptime(entry['date'],
+                                                                '%d.%m.%Y %H:%M:%S').date() <= end_date.date() and
+                         (not exercise_filter or entry['exercise'].lower() == exercise_filter.lower())]
+
+        # Проверка на существование записей, соответствующих фильтру
+        if not filtered_data:
+            messagebox.showinfo("Информация", "В заданный период упражнения не найдены.")
+            return
+
+        # Словарь для хранения данных для графика
+        progress_data = {}
+
+        for entry in filtered_data:
+            exercise = entry['exercise']
+            date = datetime.strptime(entry['date'], '%d.%m.%Y %H:%M:%S').date()
+            weight = float(entry['weight'])
+            repetitions = int(entry['repetitions'])
+
+            if exercise not in progress_data:
+                progress_data[exercise] = {'dates': [], 'weights': [], 'repetitions': []}
+
+            progress_data[exercise]['dates'].append(date)
+            progress_data[exercise]['weights'].append(weight)
+            progress_data[exercise]['repetitions'].append(repetitions)
+
+        # Создание нового окна для отображения прогресса
+        progress_window = Toplevel(self.root)
+        progress_window.title("Прогресс по упражнениям")
+
+        # Создание фигуры для графика
+        fig, ax = plt.subplots(figsize=(10, 6))
+
+        # Отображение графика для каждого упражнения
+        for exercise, data in progress_data.items():
+            ax.plot(data['dates'], data['weights'], label=f"{exercise} - Вес")
+            ax.plot(data['dates'], data['repetitions'], label=f"{exercise} - Повторения")
+
+        # Настройка графика
+        ax.set_xlabel('Дата')
+        ax.set_ylabel('Значение')
+        ax.set_title('Прогресс по упражнениям')
+        ax.legend()
+        ax.grid(True)
+
+        # Размещение графика в окне
+        canvas = FigureCanvasTkAgg(fig, master=progress_window)
+        canvas.draw()
+        canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 
 
 def main():
