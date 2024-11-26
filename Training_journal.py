@@ -2,12 +2,13 @@
 Модуль для ведения дневника тренировок с использованием графического интерфейса на основе Tkinter.
 """
 
+import csv
 import json
 import tkinter as tk
 from datetime import datetime
-from tkinter import ttk, Toplevel, messagebox
+from tkinter import ttk, Toplevel, messagebox, filedialog
 
-from tkcalendar import DateEntry
+from tkcalendar import DateEntry  # Импорт виджета календаря
 
 # Файл для сохранения данных о тренировках
 data_file = 'training_log.json'
@@ -38,9 +39,9 @@ def save_data(data):
         data (list): Список словарей с данными о тренировках.
     """
     # Открываем файл для записи данных о тренировках
-    with open(data_file, 'w') as file:
+    with open(data_file, 'w', encoding='utf-8') as file:
         # Сериализуем данные в формат JSON и записываем их в файл с отступами для лучшей читаемости
-        json.dump(data, file, indent=4)
+        json.dump(data, file, indent=4, ensure_ascii=False)
 
 
 class TrainingLogApp:
@@ -87,15 +88,24 @@ class TrainingLogApp:
 
         self.add_button = ttk.Button(self.root, text="Добавить запись",
                                      command=self.add_entry)  # Создание кнопки для добавления записи
-        self.add_button.grid(column=0, row=3, columnspan=2, pady=10)  # Размещение кнопки в сетке
+        self.add_button.grid(column=0, row=3, pady=10)  # Размещение кнопки в сетке
 
         self.view_button = ttk.Button(self.root, text="Просмотреть записи",
                                       command=self.view_records)  # Создание кнопки для просмотра записей
-        self.view_button.grid(column=0, row=4, columnspan=2, pady=10)  # Размещение кнопки в сетке
+        self.view_button.grid(column=1, row=3, pady=10)  # Размещение кнопки в сетке
+
+        # Кнопки для экспорта и импорта данных
+        self.export_button = ttk.Button(self.root, text="Экспорт в CSV",
+                                        command=self.export_to_csv)  # Создание кнопки для экспорта данных в CSV
+        self.export_button.grid(column=0, row=4)  # Размещение кнопки в сетке
+
+        self.import_button = ttk.Button(self.root, text="Импорт из CSV",
+                                        command=self.import_from_csv)  # Создание кнопки для импорта данных из CSV
+        self.import_button.grid(column=1, row=4)  # Размещение кнопки в сетке
 
         # Виджеты для фильтрации по дате с использованием календаря
-        self.start_date_label = ttk.Label(self.root, text="Начальная дата:")  # Создание метки для поля "Начальная дата"
-        self.start_date_label.grid(column=0, row=5, sticky=tk.W, padx=5, pady=5)  # Размещение метки в сетке
+        self.start_date_label = ttk.Label(self.root, text="Начальная дата:")
+        self.start_date_label.grid(column=0, row=5, sticky=tk.W, padx=5, pady=5)
 
         self.start_date_entry = DateEntry(self.root, width=12, background='darkblue',
                                           foreground='white',
@@ -103,8 +113,8 @@ class TrainingLogApp:
         self.start_date_entry.grid(column=1, row=5, sticky=tk.EW, padx=5,
                                    pady=5)  # Размещение виджета календаря в сетке
 
-        self.end_date_label = ttk.Label(self.root, text="Конечная дата:")  # Создание метки для поля "Конечная дата"
-        self.end_date_label.grid(column=0, row=6, sticky=tk.W, padx=5, pady=5)  # Размещение метки в сетке
+        self.end_date_label = ttk.Label(self.root, text="Конечная дата:")
+        self.end_date_label.grid(column=0, row=6, sticky=tk.W, padx=5, pady=5)
 
         self.end_date_entry = DateEntry(self.root, width=12, background='darkblue',
                                         foreground='white',
@@ -112,9 +122,8 @@ class TrainingLogApp:
         self.end_date_entry.grid(column=1, row=6, sticky=tk.EW, padx=5, pady=5)  # Размещение виджета календаря в сетке
 
         # Виджеты для фильтрации по упражнению
-        self.exercise_filter_label = ttk.Label(self.root,
-                                               text="Фильтр по упражнению:")  # Создание метки для поля "Фильтр по упражнению"
-        self.exercise_filter_label.grid(column=0, row=7, sticky=tk.W, padx=5, pady=5)  # Размещение метки в сетке
+        self.exercise_filter_label = ttk.Label(self.root, text="Фильтр по упражнению:")
+        self.exercise_filter_label.grid(column=0, row=7, sticky=tk.W, padx=5, pady=5)
 
         self.exercise_filter_entry = ttk.Entry(self.root)  # Создание поля ввода для фильтра по упражнению
         self.exercise_filter_entry.grid(column=1, row=7, sticky=tk.EW, padx=5, pady=5)  # Размещение поля ввода в сетке
@@ -122,6 +131,7 @@ class TrainingLogApp:
         self.filter_button = ttk.Button(self.root, text="Применить фильтр",
                                         command=self.apply_filters)  # Создание кнопки для применения фильтра
         self.filter_button.grid(column=0, row=8, columnspan=2, pady=10)  # Размещение кнопки в сетке
+
     def add_entry(self):
         """
         Добавление новой записи о тренировке.
@@ -258,6 +268,58 @@ class TrainingLogApp:
 
         # Размещение таблицы в окне с растягиванием на всю доступную область
         tree.pack(expand=True, fill=tk.BOTH)
+
+    def export_to_csv(self):
+        """
+        Экспорт данных в CSV файл.
+        """
+        # Загрузка данных о тренировках
+        data = load_data()
+
+        # Открытие диалогового окна для выбора места сохранения файла
+        file_path = filedialog.asksaveasfilename(defaultextension=".csv",
+                                                 filetypes=[("CSV files", "*.csv"), ("All files", "*.*")])
+
+        if not file_path:
+            return
+
+        # Запись данных в CSV файл
+        with open(file_path, mode='w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(["Дата", "Упражнение", "Вес", "Повторения"])  # Запись заголовков столбцов
+            for entry in data:
+                writer.writerow([entry['date'], entry['exercise'], entry['weight'], entry['repetitions']])
+
+        messagebox.showinfo("Успешно", "Данные успешно экспортированы в CSV файл.")
+
+    def import_from_csv(self):
+        """
+        Импорт данных из CSV файла.
+        """
+        # Открытие диалогового окна для выбора файла для импорта
+        file_path = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv"), ("All files", "*.*")])
+
+        if not file_path:
+            return
+
+        # Чтение данных из CSV файла
+        with open(file_path, mode='r') as file:
+            reader = csv.reader(file)
+            next(reader)  # Пропуск заголовков столбцов
+            data = []
+            for row in reader:
+                date, exercise, weight, repetitions = row
+                data.append({
+                    'date': date,
+                    'exercise': exercise,
+                    'weight': weight,
+                    'repetitions': repetitions
+                })
+
+        # Сохранение импортированных данных
+        save_data(data)
+
+        messagebox.showinfo("Успешно", "Данные успешно импортированы из CSV файла.")
 
 
 def main():
