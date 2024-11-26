@@ -6,6 +6,7 @@ import json
 import tkinter as tk
 from datetime import datetime
 from tkinter import ttk, Toplevel, messagebox
+
 from tkcalendar import DateEntry  # Импорт виджета календаря
 
 # Файл для сохранения данных о тренировках
@@ -97,30 +98,29 @@ class TrainingLogApp:
         self.start_date_label.grid(column=0, row=5, sticky=tk.W, padx=5, pady=5)
 
         self.start_date_entry = DateEntry(self.root, width=12, background='darkblue',
-                                          foreground='white', borderwidth=2)  # Создание виджета календаря для начальной даты
-        self.start_date_entry.grid(column=1, row=5, sticky=tk.EW, padx=5, pady=5)  # Размещение виджета календаря в сетке
+                                          foreground='white',
+                                          borderwidth=2)  # Создание виджета календаря для начальной даты
+        self.start_date_entry.grid(column=1, row=5, sticky=tk.EW, padx=5,
+                                   pady=5)  # Размещение виджета календаря в сетке
 
         self.end_date_label = ttk.Label(self.root, text="Конечная дата:")
         self.end_date_label.grid(column=0, row=6, sticky=tk.W, padx=5, pady=5)
 
         self.end_date_entry = DateEntry(self.root, width=12, background='darkblue',
-                                        foreground='white', borderwidth=2)  # Создание виджета календаря для конечной даты
+                                        foreground='white',
+                                        borderwidth=2)  # Создание виджета календаря для конечной даты
         self.end_date_entry.grid(column=1, row=6, sticky=tk.EW, padx=5, pady=5)  # Размещение виджета календаря в сетке
-
-        self.filter_button = ttk.Button(self.root, text="Применить фильтр",
-                                        command=self.view_filtered_records)  # Создание кнопки для применения фильтра
-        self.filter_button.grid(column=0, row=7, columnspan=2, pady=10)  # Размещение кнопки в сетке
 
         # Виджеты для фильтрации по упражнению
         self.exercise_filter_label = ttk.Label(self.root, text="Фильтр по упражнению:")
-        self.exercise_filter_label.grid(column=0, row=8, sticky=tk.W, padx=5, pady=5)
+        self.exercise_filter_label.grid(column=0, row=7, sticky=tk.W, padx=5, pady=5)
 
         self.exercise_filter_entry = ttk.Entry(self.root)  # Создание поля ввода для фильтра по упражнению
-        self.exercise_filter_entry.grid(column=1, row=8, sticky=tk.EW, padx=5, pady=5)  # Размещение поля ввода в сетке
+        self.exercise_filter_entry.grid(column=1, row=7, sticky=tk.EW, padx=5, pady=5)  # Размещение поля ввода в сетке
 
-        self.filter_exercise_button = ttk.Button(self.root, text="Фильтр по упражнению",
-                                                 command=self.view_filtered_by_exercise)  # Создание кнопки для фильтрации по упражнению
-        self.filter_exercise_button.grid(column=0, row=9, columnspan=2, pady=10)  # Размещение кнопки в сетке
+        self.filter_button = ttk.Button(self.root, text="Применить фильтр",
+                                        command=self.apply_filters)  # Создание кнопки для применения фильтра
+        self.filter_button.grid(column=0, row=8, columnspan=2, pady=10)  # Размещение кнопки в сетке
 
     def add_entry(self):
         """
@@ -196,13 +196,21 @@ class TrainingLogApp:
         # Размещение таблицы в окне с растягиванием на всю доступную область
         tree.pack(expand=True, fill=tk.BOTH)
 
-    def view_filtered_records(self):
+    def apply_filters(self):
         """
-        Просмотр записей о тренировках с применением фильтра по дате.
+        Применение фильтров по дате и упражнению.
         """
         # Получение значений из полей ввода дат
         start_date_str = self.start_date_entry.get_date().strftime('%Y-%m-%d')
         end_date_str = self.end_date_entry.get_date().strftime('%Y-%m-%d')
+
+        # Получение значения из поля ввода фильтра по упражнению
+        exercise_filter = self.exercise_filter_entry.get()
+
+        # Проверка, что оба поля даты заполнены
+        if not (start_date_str and end_date_str):
+            messagebox.showerror("Ошибка", "Введите начальную и конечную дату!")
+            return
 
         try:
             # Преобразование строк дат в объекты datetime
@@ -215,50 +223,15 @@ class TrainingLogApp:
         # Загрузка данных о тренировках
         data = load_data()
 
-        # Фильтрация записей по дате
-        filtered_data = [entry for entry in data if start_date.date() <= datetime.strptime(entry['date'], '%Y-%m-%d %H:%M:%S').date() <= end_date.date()]
+        # Фильтрация записей по дате и упражнению
+        filtered_data = [entry for entry in data if
+                         start_date.date() <= datetime.strptime(entry['date'],
+                                                                '%Y-%m-%d %H:%M:%S').date() <= end_date.date() and
+                         (not exercise_filter or entry['exercise'].lower() == exercise_filter.lower())]
 
         # Создание нового окна для отображения отфильтрованных записей
         records_window = Toplevel(self.root)
         records_window.title("Отфильтрованные записи тренировок")
-
-        # Создание таблицы для отображения данных
-        tree = ttk.Treeview(records_window, columns=("Дата", "Упражнение", "Вес", "Повторения"), show="headings")
-
-        # Установка заголовков столбцов
-        tree.heading('Дата', text="Дата")
-        tree.heading('Упражнение', text="Упражнение")
-        tree.heading('Вес', text="Вес")
-        tree.heading('Повторения', text="Повторения")
-
-        # Заполнение таблицы данными из отфильтрованных записей
-        for entry in filtered_data:
-            tree.insert('', tk.END, values=(entry['date'], entry['exercise'], entry['weight'], entry['repetitions']))
-
-        # Размещение таблицы в окне с растягиванием на всю доступную область
-        tree.pack(expand=True, fill=tk.BOTH)
-
-    def view_filtered_by_exercise(self):
-        """
-        Просмотр записей о тренировках с применением фильтра по упражнению.
-        """
-        # Получение значения из поля ввода фильтра по упражнению
-        exercise_filter = self.exercise_filter_entry.get()
-
-        # Проверка, что поле фильтра по упражнению заполнено
-        if not exercise_filter:
-            messagebox.showerror("Ошибка", "Введите название упражнения для фильтрации!")
-            return
-
-        # Загрузка данных о тренировках
-        data = load_data()
-
-        # Фильтрация записей по упражнению
-        filtered_data = [entry for entry in data if entry['exercise'] == exercise_filter]
-
-        # Создание нового окна для отображения отфильтрованных записей
-        records_window = Toplevel(self.root)
-        records_window.title(f"Записи тренировок по упражнению '{exercise_filter}'")
 
         # Создание таблицы для отображения данных
         tree = ttk.Treeview(records_window, columns=("Дата", "Упражнение", "Вес", "Повторения"), show="headings")
