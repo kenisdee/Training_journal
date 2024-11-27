@@ -11,7 +11,7 @@ from tkinter import ttk, Toplevel, messagebox, filedialog
 # Импорт библиотеки Plotly для создания интерактивных графиков
 import plotly.graph_objs as go
 import plotly.io as pio
-import plotly.subplots as sp
+from plotly.subplots import make_subplots
 # Импорт виджета календаря
 from tkcalendar import DateEntry
 
@@ -214,6 +214,9 @@ class TrainingLogApp:
         # Загрузка данных о тренировках
         data = load_data()
 
+        # Сортировка записей по дате в порядке от последней к первой
+        data.sort(key=lambda x: datetime.strptime(x['date'], '%d.%m.%Y %H:%M:%S'), reverse=True)
+
         # Создание нового окна для отображения записей
         records_window = Toplevel(self.root)
         records_window.title("Записи тренировок")
@@ -295,6 +298,9 @@ class TrainingLogApp:
                          start_date.date() <= datetime.strptime(entry['date'],
                                                                 '%d.%m.%Y %H:%M:%S').date() <= end_date.date() and
                          (not exercise_filter or entry['exercise'].lower() == exercise_filter.lower())]
+
+        # Сортировка записей по дате в порядке от последней к первой
+        filtered_data.sort(key=lambda x: datetime.strptime(x['date'], '%d.%m.%Y %H:%M:%S'), reverse=True)
 
         # Проверка на существование записей, соответствующих фильтру
         if not filtered_data:
@@ -592,20 +598,30 @@ class TrainingLogApp:
         progress_window.title("Прогресс по упражнениям")
 
         # Создание фигуры для графика
-        fig = sp.make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.1,
-                               subplot_titles=('Вес', 'Повторения'))
+        fig = make_subplots(specs=[[{"secondary_y": True}]])
 
         # Отображение графика для каждого упражнения
         for exercise, data in progress_data.items():
             fig.add_trace(
                 go.Scatter(x=data['dates'], y=data['weights'], mode='lines+markers', name=f"{exercise} - Вес"),
-                row=1, col=1)
-            fig.add_trace(go.Scatter(x=data['dates'], y=data['repetitions'], mode='lines+markers',
-                                     name=f"{exercise} - Повторения"), row=2, col=1)
+                secondary_y=False,
+            )
+            fig.add_trace(
+                go.Scatter(x=data['dates'], y=data['repetitions'], mode='lines+markers',
+                           name=f"{exercise} - Повторения"),
+                secondary_y=True,
+            )
 
         # Настройка графика
-        fig.update_layout(title='Прогресс по упражнениям', xaxis_title='Дата и время', yaxis_title='Значение',
-                          legend_title='Упражнения', template='plotly_white')
+        fig.update_layout(
+            title='Прогресс по упражнениям',
+            xaxis_title='Дата и время',
+            legend_title='Упражнения',
+            template='plotly_white'
+        )
+
+        fig.update_yaxes(title_text="Вес", secondary_y=False)
+        fig.update_yaxes(title_text="Повторения", secondary_y=True)
 
         # Размещение графика в окне
         pio.show(fig, filename='progress_plot.html', auto_open=True)
